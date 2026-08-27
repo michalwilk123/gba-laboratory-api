@@ -15,13 +15,34 @@ eksportu integracyjnego. Eksport zawiera wyłącznie zatwierdzone wyniki.
 - dokumentacja OpenAPI, Swagger UI i ReDoc,
 - przykładowe dane oraz testy API.
 
-Próbka posiada generowany przez system identyfikator UUID w polu `id`. Endpointy szczegółowe
-i powiązania wyników używają UUID, natomiast `sample_id` pozostaje unikalnym identyfikatorem
-biznesowym próbki, np. `SMP-001`. `result_id` również jest generowanym identyfikatorem UUID.
+## Pytania do uzupełnienia przed oddaniem zadania
+
+Poniższe pytania są celowo pozostawione bez odpowiedzi.
+
+#### 1. Dlaczego wybrałeś ten framework i taką strukturę aplikacji?
+
+Aplikacja według wymagań przypomina najbardziej aplikacje typu CRUD opartą o baze danych. Tego typu aplikacje łatwiej jest zbudować w Django niż w FastAPI.
+Póki co jest mało kodu i aplikacja jest prosta i czytelna i jest wszystko co jest potrzebne
+
+
+#### 2. Jak zaprojektowałeś model danych?
+
+Model składa się z dwóch głównych encji: próbki i wyniku. Próbka może mieć wiele wyników, ale tylko jeden dla danego parametru. sample_id jest unikalnym identyfikatorem biznesowym, a UUID służy jako identyfikator techniczny. Usunięcie próbki z istniejącymi wynikami jest blokowane, żeby zachować spójność danych.
+
+
+#### 3. Jak zaprojektowałeś obsługę statusów próbek i wyników?
+
+Statusy zostały zaimplementowane jako jawne zestawy wartości przy użyciu TextChoices w modelach Django. Próbka może mieć status registered, in_progress, completed lub cancelled, a wynik draft lub approved. Poprawność wartości jest sprawdzana przez serializery. Obsługa statusów została celowo uproszczona do wymagań zadania.
+
+
+#### 4. Jak rozwiązanie można rozwinąć pod integrację z systemem zewnętrznym, np. ERP, CRM, portalem klienta albo
+
+platformą e-commerce?
+Można rozbudować o funkcjonalność webhooków, które będą wysyłać powiadomienia o zmianach stausów do zewnętrznych serwisów.
 
 ## Technologie
 
-- Python 3.13
+- Python 3.14.7
 - Django 5.2 i Django REST Framework
 - PostgreSQL 17
 - Django ORM i django-filter
@@ -139,40 +160,3 @@ Endpointy nie mają końcowego ukośnika.
 
 Listy próbek i wyników obsługują paginację. Dostępne filtry są widoczne w dokumentacji
 OpenAPI.
-
-## Pytania do uzupełnienia przed oddaniem zadania
-
-Poniższe pytania są celowo pozostawione bez odpowiedzi.
-
-1. Dlaczego wybrałeś ten framework i taką strukturę aplikacji?
-
-   **Odpowiedź:** _do uzupełnienia_
-
-2. Jak zaprojektowałeś model danych oraz relację między próbką i wynikami?
-
-   **Odpowiedź:** _do uzupełnienia_
-
-3. Jak zaprojektowałeś obsługę statusów próbek i wyników?
-
-   **Odpowiedź:** _do uzupełnienia_
-
-4. Jak rozwiązanie można rozwinąć pod integrację z systemem zewnętrznym, np. ERP, CRM,
-   portalem klienta albo platformą e-commerce?
-
-   **Odpowiedź:** _do uzupełnienia_
-
-5. Jakie najważniejsze decyzje techniczne i założenia architektoniczne przyjąłeś?
-
-   **Odpowiedź:** _do uzupełnienia_
-
-6. Które elementy świadomie pominąłeś, dlaczego i jak zrealizowałbyś je w kolejnym kroku?
-
-   **Odpowiedź:** _do uzupełnienia_
-
-7. Które scenariusze zostały pokryte testami i dlaczego wybrałeś właśnie je?
-
-   **Odpowiedź:** _do uzupełnienia_
-
-8. Które endpointy, walidacje i przypadki błędów pokażesz podczas prezentacji rozwiązania?
-
-   **Odpowiedź:** _do uzupełnienia_
