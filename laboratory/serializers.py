@@ -1,14 +1,13 @@
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
 
-from laboratory.models import Result, Sample
+from laboratory.models import Result, ResultStatus, Sample, SampleStatus, django_choices
 
 
 class SampleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Sample
         fields = [
-            "id",
             "sample_id",
             "order_id",
             "client_id",
@@ -16,19 +15,22 @@ class SampleSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "created_at", "updated_at"]
+        read_only_fields = ["created_at", "updated_at"]
 
 
 class SampleStatusSerializer(serializers.Serializer):
-    status = serializers.ChoiceField(choices=Sample.Status.choices)
+    status = serializers.ChoiceField(choices=django_choices(SampleStatus))
 
 
 class ResultSerializer(serializers.ModelSerializer):
-    sample_id = serializers.PrimaryKeyRelatedField(
+    sample_id = serializers.SlugRelatedField(
         queryset=Sample.objects.all(),
+        slug_field="sample_id",
         source="sample",
     )
-    status = serializers.ChoiceField(choices=Result.Status.choices, default=Result.Status.DRAFT)
+    status = serializers.ChoiceField(
+        choices=django_choices(ResultStatus), default=ResultStatus.DRAFT
+    )
 
     class Meta:
         model = Result
@@ -52,7 +54,7 @@ class ResultSerializer(serializers.ModelSerializer):
         ]
 
     def validate_status(self, value: str) -> str:
-        if value != Result.Status.DRAFT:
+        if value != ResultStatus.DRAFT:
             raise serializers.ValidationError("New results must be created as draft.")
         return value
 
@@ -69,4 +71,4 @@ class SampleExportSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Sample
-        fields = ["id", "sample_id", "order_id", "client_id", "sample_status", "results"]
+        fields = ["sample_id", "order_id", "client_id", "sample_status", "results"]

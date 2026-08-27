@@ -7,7 +7,7 @@ from rest_framework.test import APITestCase
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from laboratory.factories import ResultFactory, SampleFactory
-from laboratory.models import Result, Sample
+from laboratory.models import ResultStatus, SampleStatus
 
 
 class AuthenticatedAPITestCase(APITestCase):
@@ -59,13 +59,6 @@ class SampleApiTests(AuthenticatedAPITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
-    def test_business_reference_is_not_used_as_public_route(self):
-        sample = SampleFactory.create(sample_id="SMP-001")
-
-        response = self.client.get(f"/samples/{sample.sample_id}")
-
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-
     def test_create_list_and_retrieve_sample(self):
         payload = {
             "sample_id": "SMP-001",
@@ -77,14 +70,13 @@ class SampleApiTests(AuthenticatedAPITestCase):
         create_response = self.client.post(reverse("sample-list"), payload, format="json")
         list_response = self.client.get(reverse("sample-list"))
         detail_response = self.client.get(
-            reverse("sample-detail", kwargs={"id": create_response.data["id"]})
+            reverse("sample-detail", kwargs={"sample_id": payload["sample_id"]})
         )
 
         self.assertEqual(create_response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(uuid.UUID(create_response.data["id"]).version, 4)
+        self.assertNotIn("id", create_response.data)
         self.assertEqual(list_response.status_code, status.HTTP_200_OK)
         self.assertEqual(list_response.data["count"], 1)
-        self.assertEqual(detail_response.data["id"], create_response.data["id"])
         self.assertEqual(detail_response.data["sample_id"], payload["sample_id"])
 
     def test_sample_id_must_be_unique(self):
@@ -108,20 +100,20 @@ class SampleApiTests(AuthenticatedAPITestCase):
         sample = SampleFactory.create()
 
         response = self.client.patch(
-            reverse("sample-status", kwargs={"id": sample.id}),
+            reverse("sample-status", kwargs={"sample_id": sample.sample_id}),
             {"status": "completed"},
             format="json",
         )
 
         sample.refresh_from_db()
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(sample.status, Sample.Status.COMPLETED)
+        self.assertEqual(sample.status, SampleStatus.COMPLETED)
 
     def test_arbitrary_sample_update_is_not_exposed(self):
         sample = SampleFactory.create()
 
         response = self.client.patch(
-            reverse("sample-detail", kwargs={"id": sample.id}),
+            reverse("sample-detail", kwargs={"sample_id": sample.sample_id}),
             {"client_id": "CLIENT-002"},
             format="json",
         )
@@ -132,7 +124,7 @@ class SampleApiTests(AuthenticatedAPITestCase):
         sample = SampleFactory.create()
 
         response = self.client.patch(
-            reverse("sample-status", kwargs={"id": sample.id}),
+            reverse("sample-status", kwargs={"sample_id": sample.sample_id}),
             {"status": "unknown"},
             format="json",
         )
@@ -145,13 +137,13 @@ class SampleApiTests(AuthenticatedAPITestCase):
             sample_id="SMP-001",
             order_id="ORD-2026-001",
             client_id="CLIENT-001",
-            status=Sample.Status.REGISTERED,
+            status=SampleStatus.REGISTERED,
         )
         SampleFactory.create(
             sample_id="SMP-002",
             order_id="ORD-2026-002",
             client_id="CLIENT-002",
-            status=Sample.Status.COMPLETED,
+            status=SampleStatus.COMPLETED,
         )
 
         response = self.client.get(reverse("sample-list"), {"status": "completed"})
@@ -168,7 +160,7 @@ class ResultApiTests(AuthenticatedAPITestCase):
 
     def test_create_and_list_result_for_sample(self):
         payload = {
-            "sample_id": str(self.sample.id),
+            "sample_id": self.sample.sample_id,
             "parameter": "Protein",
             "value": 12.5,
             "unit": "%",
@@ -177,18 +169,19 @@ class ResultApiTests(AuthenticatedAPITestCase):
 
         create_response = self.client.post(reverse("result-list"), payload, format="json")
         sample_results_response = self.client.get(
-            reverse("sample-results", kwargs={"id": self.sample.id})
+            reverse("sample-results", kwargs={"sample_id": self.sample.sample_id})
         )
 
         self.assertEqual(create_response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(str(create_response.data["sample_id"]), str(self.sample.id))
+        self.assertEqual(uuid.UUID(create_response.data["result_id"]).version, 7)
+        self.assertEqual(create_response.data["sample_id"], self.sample.sample_id)
         self.assertEqual(sample_results_response.status_code, status.HTTP_200_OK)
         self.assertEqual(sample_results_response.data["count"], 1)
         self.assertEqual(sample_results_response.data["results"][0]["parameter"], "Protein")
 
     def test_result_for_unknown_sample_is_rejected(self):
         payload = {
-            "sample_id": str(uuid.uuid4()),
+            "sample_id": "SMP-404",
             "parameter": "Protein",
             "value": 12.5,
             "unit": "%",
@@ -205,7 +198,7 @@ class ResultApiTests(AuthenticatedAPITestCase):
             parameter="Protein",
         )
         payload = {
-            "sample_id": str(self.sample.id),
+            "sample_id": self.sample.sample_id,
             "parameter": "Protein",
             "value": 13,
             "unit": "%",
@@ -218,7 +211,7 @@ class ResultApiTests(AuthenticatedAPITestCase):
 
     def test_new_result_cannot_be_created_as_approved(self):
         payload = {
-            "sample_id": str(self.sample.id),
+            "sample_id": self.sample.sample_id,
             "parameter": "Protein",
             "value": 12.5,
             "unit": "%",
@@ -243,31 +236,46 @@ class ResultApiTests(AuthenticatedAPITestCase):
         result.refresh_from_db()
         self.assertEqual(first_response.status_code, status.HTTP_200_OK)
         self.assertEqual(second_response.status_code, status.HTTP_200_OK)
-        self.assertEqual(result.status, Result.Status.APPROVED)
+        self.assertEqual(result.status, ResultStatus.APPROVED)
+
+    def test_results_can_be_filtered_by_business_sample_id(self):
+        ResultFactory.create(sample=self.sample, parameter="Protein")
+        ResultFactory.create(parameter="Moisture")
+
+        response = self.client.get(reverse("result-list"), {"sample_id": self.sample.sample_id})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 1)
+        self.assertEqual(response.data["results"][0]["sample_id"], self.sample.sample_id)
+        self.assertEqual(response.data["results"][0]["parameter"], "Protein")
 
 
 class IntegrationExportTests(AuthenticatedAPITestCase):
     def test_export_contains_only_approved_results(self):
-        sample = SampleFactory.create(status=Sample.Status.COMPLETED)
+        sample = SampleFactory.create(status=SampleStatus.COMPLETED)
         ResultFactory.create(
             sample=sample,
             parameter="Protein",
-            status=Result.Status.APPROVED,
+            status=ResultStatus.APPROVED,
         )
         ResultFactory.create(
             sample=sample,
             parameter="Moisture",
-            status=Result.Status.DRAFT,
+            status=ResultStatus.DRAFT,
         )
 
-        response = self.client.get(reverse("integration-export", kwargs={"id": sample.id}))
+        response = self.client.get(
+            reverse("integration-export", kwargs={"sample_id": sample.sample_id})
+        )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertNotIn("id", response.data)
+        self.assertEqual(response.data["sample_id"], sample.sample_id)
         self.assertEqual(response.data["sample_status"], "completed")
         self.assertEqual(len(response.data["results"]), 1)
         self.assertEqual(response.data["results"][0]["parameter"], "Protein")
 
     def test_export_for_unknown_sample_returns_not_found(self):
-        response = self.client.get(reverse("integration-export", kwargs={"id": uuid.uuid4()}))
+        response = self.client.get(reverse("integration-export", kwargs={"sample_id": "SMP-404"}))
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)

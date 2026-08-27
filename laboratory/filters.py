@@ -10,7 +10,7 @@ class SampleFilter(django_filters.FilterSet):
 
 
 class ResultFilter(django_filters.FilterSet):
-    sample_id = django_filters.UUIDFilter(field_name="sample_id")
+    sample_id = django_filters.CharFilter(field_name="sample__sample_id")
 
     class Meta:
         model = Result

@@ -3,7 +3,7 @@ from decimal import Decimal
 from django.core.management import call_command
 from django.test import TestCase
 
-from laboratory.models import Result, Sample
+from laboratory.models import Result, ResultStatus, Sample, SampleStatus
 
 
 class SeedDataCommandTests(TestCase):
@@ -16,12 +16,12 @@ class SeedDataCommandTests(TestCase):
 
         self.assertEqual(Sample.objects.count(), 1)
         self.assertEqual(Result.objects.count(), 2)
-        self.assertEqual(sample.status, Sample.Status.COMPLETED)
+        self.assertEqual(sample.status, SampleStatus.COMPLETED)
         self.assertQuerySetEqual(
             results,
             [
-                ("Moisture", Decimal("8.75"), Result.Status.DRAFT),
-                ("Protein", Decimal("12.5"), Result.Status.APPROVED),
+                ("Moisture", Decimal("8.75"), ResultStatus.DRAFT),
+                ("Protein", Decimal("12.5"), ResultStatus.APPROVED),
             ],
             transform=lambda result: (result.parameter, result.value, result.status),
         )

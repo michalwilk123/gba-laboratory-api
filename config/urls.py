@@ -13,7 +13,7 @@ router.register("results", ResultViewSet)
 urlpatterns = [
     *router.urls,
     path(
-        "integration/export/<uuid:id>",
+        "integration/export/<str:sample_id>",
         IntegrationExportView.as_view(),
         name="integration-export",
     ),

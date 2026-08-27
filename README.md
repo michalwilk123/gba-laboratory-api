@@ -127,13 +127,13 @@ Endpointy nie mają końcowego ukośnika.
 | --- | --- | --- |
 | `POST` | `/samples` | Dodanie próbki |
 | `GET` | `/samples` | Lista próbek |
-| `GET` | `/samples/{id}` | Szczegóły próbki po UUID |
-| `PATCH` | `/samples/{id}/status` | Zmiana statusu próbki |
-| `GET` | `/samples/{id}/results` | Wyniki przypisane do próbki |
+| `GET` | `/samples/{sample_id}` | Szczegóły próbki po identyfikatorze biznesowym |
+| `PATCH` | `/samples/{sample_id}/status` | Zmiana statusu próbki |
+| `GET` | `/samples/{sample_id}/results` | Wyniki przypisane do próbki |
 | `POST` | `/results` | Dodanie wyniku |
 | `GET` | `/results` | Lista wyników |
 | `PATCH` | `/results/{result_id}/approve` | Zatwierdzenie wyniku |
-| `GET` | `/integration/export/{id}` | Eksport próbki i zatwierdzonych wyników |
+| `GET` | `/integration/export/{sample_id}` | Eksport próbki i zatwierdzonych wyników |
 | `POST` | `/auth/token` | Uzyskanie pary tokenów JWT |
 | `POST` | `/auth/token/refresh` | Odświeżenie tokenu dostępu |
 

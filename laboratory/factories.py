@@ -2,7 +2,7 @@ from decimal import Decimal
 
 import factory
 
-from laboratory.models import Result, Sample
+from laboratory.models import Result, ResultStatus, Sample, SampleStatus
 
 
 class SampleFactory(factory.django.DjangoModelFactory):
@@ -13,7 +13,7 @@ class SampleFactory(factory.django.DjangoModelFactory):
     sample_id = factory.Sequence(lambda number: f"SMP-{number:03d}")
     order_id = factory.Sequence(lambda number: f"ORD-2026-{number:03d}")
     client_id = factory.Sequence(lambda number: f"CLIENT-{number:03d}")
-    status = Sample.Status.REGISTERED
+    status = SampleStatus.REGISTERED
 
 
 class ResultFactory(factory.django.DjangoModelFactory):
@@ -25,4 +25,4 @@ class ResultFactory(factory.django.DjangoModelFactory):
     parameter = factory.Sequence(lambda number: f"Parameter {number}")
     value = Decimal("1.0")
     unit = "%"
-    status = Result.Status.DRAFT
+    status = ResultStatus.DRAFT
